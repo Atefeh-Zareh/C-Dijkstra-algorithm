@@ -1,0 +1,376 @@
+#+OPTIONS:  toc:nil ^:nil num:nil
+
+#+BEGIN_SRC emacs-lisp :exports none :results silent
+  (setq org-latex-minted-options
+	'(("frame" "lines")
+          ;;("bgcolor" "mybg")
+          ;;("fontsize" "\\scriptsize")
+          ("mathescape" "")
+          ("samepage" "")
+          ("xrightmargin" "0.5cm")
+          ("xleftmargin"  "0.5cm")
+;;	  ("escapeinside" "@@")
+          ))
+#+END_SRC
+
+#+TITLE: Advanced programming in C++ - TP 4
+
+* Graph library 
+
+  An /directed oriented graph/ is a data structure used in mathematics
+  and in computer science to represent networks of objects. The goal
+  of this exercise is to build a /graph template library/ to create
+  and manipulate graphs.
+
+** Definitions
+
+   An /oriented graph/ is a set of nodes connected by directional
+   edges. It is possible to associate objects (labels) to nodes and
+   edges.
+
+   For example, we would like to represent the network of roads in the
+   region. Every node represents a city and the edges are the
+   roads. In this case, to each node corresponds an object of type
+   "City" and to each edge an object of type "Route". 
+
+   #+BEGIN_SRC dot :file graph-ex.png
+     digraph nord {
+        Lille -> Bethune;
+        Lille -> Lens;
+        Lille -> { Douai Valenciennes };
+        subgraph { rank = same; Douai; Valenciennes; }; 
+        Bethune -> Lens;
+        Lens -> Douai;
+        Douai -> Valenciennes;
+        Lens -> Arras;
+        Douai -> Arras;
+     }
+   #+END_SRC
+
+   #+attr_latex: :float t :width .4\textwidth
+   #+RESULTS:
+   [[file:graph-ex.png]]
+
+   There are several ways to [[https://en.wikipedia.org/wiki/Graph_(abstract_data_type)#Common_Data_Structures_for_Graph_Representation][represent a graph]]. In this exercise, we will use a very simple representation. 
+   - Every node is represented by a data structure. A node has a
+     non-negative integer that is used a unique identifier, and it
+     contains an object (for example a string);
+   - The list of nodes is keprs into a /map/ which associates to each
+     identifier the corresponding node structure.
+   - An edge is represented by a pair of node indentifiers (source and
+     destination) and a label (e.g. a string). Also, an edge has a
+     uique identifier.
+   - The list of edged is also kept into a map which associates each identifier to the edge data structure. 
+   - Finally, we use a /map/ to associate nodes with lists of outgoing edges. 
+
+   Here is the skeleton of the code we will use. 
+   #+BEGIN_SRC c++
+     class Graph {
+         struct Node {
+             int node_id;      // node identifier 
+             std::string data; // node label
+         };
+         struct Edge {
+             int edge_id;      // edge identifier 
+             std::string data; // edge label
+             int source_id;    // source node id 
+             int dest_id;      // dest. node id
+         };
+
+         /* data structures */
+         std::map<int, Node> nodes;             // list of all nodes 
+         std::map<int, Edge> edges;             // list of all edges
+         std::map<int, std::vector<int>> dests; // for each node, the list of outgoing edges
+         int id_counter;                        // a counter
+         int edge_counter;                      // another counter
+
+     public:
+
+         Graph() : id_counter{0}, edge_counter{0} {}
+         Graph(const Graph &other) :
+             nodes(other.nodes), edges(other.edges), dests(other.dests), 
+             id_counter(other.id_counter), edge_counter(other.edge_counter) {}
+
+         inline int add_node(const std::string &m) { /* todo */ }
+
+         inline bool node_exist(int id) const { /* todo */ }
+
+         inline int add_edge(const std::string &m, int source_id, int dest_id) {
+             /* todo */
+         }
+
+         inline void remove_node(int node_id) {
+             /* todo */
+         }
+
+         inline int search_node(const std::string &m) const {
+             /* todo */
+         }
+
+         inline std::string get_node_data(int node_id) const {
+             /* todo */
+         }
+
+         inline std::string get_edge_data(int edge_id) const {
+             /* todo */
+         }
+
+         inline int get_edge_source(int edge_id) const {
+             /* todo */
+         }
+
+         inline int get_edge_dest(int edge_id) const {
+             /* todo */
+         }
+
+         std::vector<int> get_successors(int node_id) const {
+             /* todo */
+         }
+
+         std::vector<int> get_predecessors(int node_id) const {
+             /* todo */
+         }
+
+         using Path=std::vector<int>;
+
+         std::vector<Path> all_paths(int from, int to) const {
+             /* todo */
+         }
+         Path shortest_path(int from, int to) const {
+             /* todo */
+         }
+     };
+   #+END_SRC
+   
+   The goal is to implement a library. First, we will develop a non-template version, where nodes and edges have strings as labels. 
+
+** Question 1: coding the class  
+
+   You must implement: 
+   
+   - a /copy constructor/ ;
+   - =add_node()= adds a node to the graph, and returns the unique identifier.
+   - =add_edge()= adds an edge between two nodes, given their ids. It returns the id of the edge. 
+   - =get_node_data()= et =get_edge_data()= return the content (label) given the node id (the edge id respectively). 
+   - for an edge, =get_source()= (and =get_dest()=) returns the id of the node source (destination, respectively);
+   - for a node, =get_successors()= returns a vector of outgoing edge ids; =get_predecessor()= returns a vector of incoming edge ids. 
+   - a =Path= is just a vector of edge ids that represent a path in the graph. 
+   - function =all_paths()= returns the list of all possible distinct paths between a node =from= and a node =to=. If no path exists between the two nodes, it returns an empty vector.
+     *Warning: to simplify the coding, assume that the graph does not contain any cycle*.
+   - to implement the =shortest_path()= function, we use [[https://en.wikipedia.org/wiki/Dijkstra%2527s_algorithm#Description][Djikstra's algorithm]]. 
+
+   Implement the class. Write tests to verify that your implementation works correctly.
+     
+*** Answer
+
+    Please specify which tests you added. 
+
+   
+** Question 2: template class 
+
+   Generalize the =Graph= class, so that it is possible to associate
+   any type of objects to nodes and edges.
+
+   - The =Graph= class becomes a template class: 
+
+     #+BEGIN_SRC c++
+       template<class ND, class ED> 
+       class Graph {
+        ...
+       };
+     #+END_SRC
+
+   - Functions  =get_node_data(int node_id)= et =get_edge_data(int
+     edge_id)= must return the corresponding objects. 
+
+     #+BEGIN_SRC c++
+       template<class ND, class ED> 
+       class Graph {
+        ...
+       public:
+           ND get_node_data(int node_id) const { /* todo */ }
+           ED get_edge_data(int edge_id) const { /* todo */ }
+       };
+
+     #+END_SRC
+
+
+   Verify that the previous tests are still correct when we specify
+   strings as the contained objects for these classes.
+
+   Suggestion: code the template class into a different file. For
+   example, into =graph_t.hpp=. The test will include either one or
+   the other class.
+
+*** Answer
+
+    Write here the things you were able to do, what did it work, and
+    what did not work. Specify which additional teste you wrote. 
+
+   
+** Question 3: Decoration
+
+   We would like to decorate the edges with additional information
+   without modifying the class associated to the edges.
+
+   For example, suppose that the graph represents the roads in the
+   "département du Nord" in France. We associate a =std::string= to
+   the edges with the name of the road. Later, we would like to add
+   information on the lenght in Kilometers of the road.
+
+   Here is the strategy:
+  
+   - We prepare a variadique template class =EdgeData= which only contains strings: 
+     #+BEGIN_SRC C++
+       template <typename ...Tp>
+       class EdgeData : public Tp ... {
+	   std::string str;
+       public:
+           void set_string(const std::string &s) { str = s; }
+           std::string get_string() const { return str; }
+       };
+     #+END_SRC
+
+   - We declare class =RouteLength= :
+
+     #+BEGIN_SRC C++
+     class RouteLength {
+         double l;
+     public:
+         void set_lenght(double len) { l = len; }
+         double get_lenght(double len) const { return l; }       
+     };
+     #+END_SRC
+
+   - Now, class =EdgeData<RouteLength>= will contain a
+     =string= and a =double=, and we can use it as in the following code:
+
+     #+BEGIN_SRC c++
+       EdgeData<RouteLength> data;
+       data.set_string("Lille-Valenciennes");
+       data.set_lenght(44.14);
+     #+END_SRC
+
+   - We declare an instance of =Graph= having as parameter class
+     =EdgeData<RouteLength>=:
+     #+BEGIN_SRC c++
+     Graph<string, EdgeData<RouteLength>> mygraph;
+
+     int lille = mygraph.add_node("Lille");
+     int valen = mygraph.add_node("Valenciennes");
+     mygraph.add_edge(data, lille, valen);
+     #+END_SRC
+
+   Test the correctness of this technique. Add also a second property
+   =AverageTime= to store the average driving time of the road, and
+   verify that everything still works.
+
+*** Answer
+
+    Please specify which test you added. 
+
+   
+** Question 4: Generalisation of =shortest_path()=
+
+   We would like to specialize =shortest_path()= in order to take into
+   account a generic property of edges.  For example, in the case of
+   the graph that represent the roads in the region, we would like to
+   compute the shortest path (in terms of kms) or the fastest
+   (shortest average time), or the one with the largest number of gas
+   stations, etc.
+
+   In order to do so, =shortest_path()= becomes a /template method/
+   that takes as a parameter a function to evaluate a metric on the
+   edges.
+
+   Write the template method =shortest_path_naive()=, and test it with class
+   =EdgeData<RouteLength>= implemented in the previous question.
+
+*** Answer
+
+    Tell if you were able to complete the implementation, and the
+    additional tests you wrote.
+
+   
+** Question 5: shared pointers
+
+   In the code developed so far, it is not possible to dynamically
+   change the informations associated to a node: once a node has been created, we cannot modify it anymore, nor we can change its label. 
+
+   To allow dynamic update of the information associated to a node, we use the following strategy: 
+
+   - In structures =Node= and =Edge= we store a 
+     =shared_ptr= toward the associated object.
+
+     #+BEGIN_SRC C++
+       template <typename N, typename E> 
+       class Graph {
+           struct Node {
+               int node_id;
+               std::shared_ptr<N> data;
+           };
+           struct Edge {
+               int edge_id;
+               int source_id;
+               int dest_id;
+               std::shared_ptr<E> data;
+           };
+          /* etc. */
+       };
+     #+END_SRC
+
+   - Functions =get_node_data()= et =get_edge_data()= return a =shared_ptr<>=
+     toward the associated object, that we can later modify. 
+
+     #+BEGIN_SRC C++
+	std::shared_ptr<N> get_node(int node_id) {/*todo*/}
+	std::shared_ptr<E> get_edge(int edge_id) {/*todo*/}      
+     #+END_SRC
+
+     Implement this new version of the code.
+     
+   - Test the following scenario:
+
+     1) A user creates a graph of distances between cities. 
+     2) She/he calculates the minimal path using the technique developed in question 4. 
+     3) Then it modifies a distance.
+     4) It recomputes again the shortest path, obtaining a different one. 
+
+   - Test that a reference obtained with  =get_node_data()= is still valid after destroying the graph.
+   
+*** Answer
+
+    Were you able to complete the assignment? Please specify which
+    additional test you wrote.
+   
+
+** Question 6: deep copy
+
+   The default copy constructor makes a shallow copy of a graph,
+   so objects pointed by a =shared_ptr= are not copied. 
+
+   Add a fonction to make a deep copy of a graph:
+   #+BEGIN_SRC C++
+   template <typename N, typename E>
+   class Graph {
+       /* ... */
+   public:
+       Graph() {}
+       Graph (const Graph &other) { /* shallow copy */ }
+       Graph deep_copy() const { /* deep copy */ }
+       /* ... */
+    }; 
+   #+END_SRC
+
+   The function verifies if type =N= is polymorphic: if so, it uses function =clone=, else it uses a copy constructor.
+   Same thing for type =E=.
+
+   Test that the copies are made correctly: in case of a deep copy, if
+   we modify the original, the copy is not modified.
+
+*** Answer
+
+    Please specify if you completed the assignment. Which additional
+    tests did you write?
+
+    
